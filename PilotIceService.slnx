@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ChangesListener/ChangesListener.csproj" />
+  <Project Path="PilotIceService.Application/PilotIceService.Application.csproj" Id="12d7425c-2018-4e7e-8f24-43ada87c596a" />
+  <Project Path="PilotIceService.Infrastructure/PilotIceService.Infrastructure.csproj" Id="d02b1356-bf7f-4677-a250-116d57bfb3a1" />
+  <Project Path="PilotIceService.WebApi/PilotIceService.WebApi.csproj" Id="84252ba5-4e6d-4799-9bfb-7b2ca5c387bb" />
+</Solution>
