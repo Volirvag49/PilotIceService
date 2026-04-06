@@ -16,38 +16,38 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
             var userName = configuration.GetValue<string>("PilotConfig:UserName");
             var password = configuration.GetValue<string>("PilotConfig:Password");
 
-            services.AddSingleton<ConnectionCredentials>(q => ConnectionCredentials.GetConnectionCredentials(url,
+            services.AddScoped<ConnectionCredentials>(q => ConnectionCredentials.GetConnectionCredentials(url,
                 userName,
                 password.ConvertToSecureString()));
 
-            services.AddSingleton<HttpPilotClient>(q =>
-            {
-                var credentials = q.GetService<ConnectionCredentials>();
+            //services.AddScoped<HttpPilotClient>(q =>
+            //{
+            //    var credentials = q.GetService<ConnectionCredentials>();
 
-                var pilotClient =
-                    new HttpPilotClient(credentials.GetConnectionString(), credentials.GetConnectionProxy());
+            //    var pilotClient =
+            //        new HttpPilotClient(credentials.GetConnectionString(), credentials.GetConnectionProxy());
 
-                pilotClient.Connect(false);
-                pilotClient.GetAuthenticationApi()
-                    .Login(credentials.DatabaseName, credentials.Username, credentials.ProtectedPassword, false, 90);
+            //    pilotClient.Connect(false);
+            //    pilotClient.GetAuthenticationApi()
+            //        .Login(credentials.DatabaseName, credentials.Username, credentials.ProtectedPassword, false, 90);
 
-                return pilotClient;
-            });
+            //    return pilotClient;
+            //});
 
-            services.AddSingleton<IServerAsyncApi>(q =>
-            {
-                var pilotClient = q.GetService<HttpPilotClient>();
+            //services.AddScoped<IServerAsyncApi>(q =>
+            //{
+            //    var pilotClient = q.GetService<HttpPilotClient>();
 
-                var taskCompletionSource = new TaskCompletionSource<DSearchResult>();
-                var callBack = new SearchResultCallBack(taskCompletionSource.SetResult);
-                var serverApi = pilotClient.GetServerAsyncApi(callBack);
+            //    var taskCompletionSource = new TaskCompletionSource<DSearchResult>();
+            //    var callBack = new SearchResultCallBack(taskCompletionSource.SetResult);
+            //    var serverApi = pilotClient.GetServerAsyncApi(callBack);
 
-                serverApi.OpenDatabaseAsync();
+            //    serverApi.OpenDatabaseAsync();
 
-                return serverApi;
-            });
+            //    return serverApi;
+            //});
 
-            services.AddSingleton<IBackend>(q =>
+            services.AddScoped<IBackend>(q =>
             {
                 var pilotClient = q.GetService<HttpPilotClient>();
 
@@ -58,7 +58,7 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
                 return new Backend(serverApi, default, default);
             });
 
-            services.AddSingleton<PilotClient>();
+            services.AddScoped<PilotClient>();
 
             services.AddHostedService<PilotChangesListenerBackgroundService>();
 

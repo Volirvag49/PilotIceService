@@ -3,20 +3,17 @@ using Ascon.Pilot.DataClasses;
 using Ascon.Pilot.DataModifier;
 using Ascon.Pilot.Server.Api;
 using Ascon.Pilot.Server.Api.Contracts;
+using Ascon.Pilot.Transport;
 
 namespace PilotIceService.Infrastructure.Clients.PilotIce
 {
-    public class PilotClient
+    public class PilotClient : IConnectionLostListener
     {
-        private readonly HttpPilotClient _client;
-        private readonly IServerAsyncApi _serverAsyncApi;
-        private readonly IBackend _backend;
+        private readonly ConnectionCredentials _credentials;
 
-        public PilotClient(HttpPilotClient client, IServerAsyncApi serverAsyncApi, IBackend backend)
+        public PilotClient(ConnectionCredentials connectionCredentials)
         {
-            _client = client;
-            _serverAsyncApi = serverAsyncApi;
-            _backend = backend;
+            _credentials = connectionCredentials;
         }
 
 
@@ -34,7 +31,21 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
             //var type3 = backend.GetType(19);
             //++++++++++++++
 
-            var metaData = await _serverAsyncApi.GetMetadataAsync(0).WaitAsync(ct);
+            var pilotClient =
+                new HttpPilotClient(_credentials.GetConnectionString(), _credentials.GetConnectionProxy());
+
+            pilotClient.Connect(false);
+            pilotClient.GetAuthenticationApi()
+                .Login(_credentials.DatabaseName, _credentials.Username, _credentials.ProtectedPassword, false, 90);
+
+
+            var taskCompletionSource = new TaskCompletionSource<DSearchResult>();
+            var callBack = new SearchResultCallBack(taskCompletionSource.SetResult);
+            var serverApi = pilotClient.GetServerAsyncApi(callBack);
+
+            await serverApi.OpenDatabaseAsync();
+
+            var metaData = await serverApi.GetMetadataAsync(0).WaitAsync(ct);
 
             var query = metaData?.Types.OrderBy(q => q.Id).AsQueryable();
 
@@ -74,7 +85,22 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
                 return [];
             }
 
-            var result = await _serverAsyncApi.GetObjectsAsync(searchResult?.Found.ToArray()).WaitAsync(ct);
+
+            var pilotClient =
+                new HttpPilotClient(_credentials.GetConnectionString(), _credentials.GetConnectionProxy());
+
+            pilotClient.Connect(false);
+            pilotClient.GetAuthenticationApi()
+                .Login(_credentials.DatabaseName, _credentials.Username, _credentials.ProtectedPassword, false, 90);
+
+
+            var taskCompletionSource = new TaskCompletionSource<DSearchResult>();
+            var callBack = new SearchResultCallBack(taskCompletionSource.SetResult);
+            var serverApi = pilotClient.GetServerAsyncApi(callBack);
+
+            await serverApi.OpenDatabaseAsync();
+
+            var result = await serverApi.GetObjectsAsync(searchResult?.Found.ToArray()).WaitAsync(ct);
 
             return result;
         }
@@ -90,7 +116,14 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
             await using var registration = ct.Register(() => taskCompletionSource.TrySetCanceled());
 
             var callBack = new SearchResultCallBack(taskCompletionSource.SetResult);
-            var serverApi = _client.GetServerAsyncApi(callBack);
+
+            var pilotClient =
+                new HttpPilotClient(_credentials.GetConnectionString(), _credentials.GetConnectionProxy());
+
+            pilotClient.Connect(false);
+            pilotClient.GetAuthenticationApi()
+                .Login(_credentials.DatabaseName, _credentials.Username, _credentials.ProtectedPassword, false, 90);
+            var serverApi = pilotClient.GetServerAsyncApi(callBack);
 
             await serverApi.OpenDatabaseAsync().WaitAsync(ct);
             await serverApi.AddSearchAsync(searchDefinition).WaitAsync(ct);
@@ -103,6 +136,12 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
             {
                 return null;
             }
+        }
+
+        /// <inheritdoc />
+        public void ConnectionLost(Exception ex = null)
+        {
+            throw new NotImplementedException();
         }
     }
 }

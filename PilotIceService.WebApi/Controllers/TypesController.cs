@@ -4,7 +4,7 @@ using PilotIceService.Application.Services;
 namespace PilotIceService.WebApi.Controllers
 {
     [ApiController]
-    [Tags("Типы объектов")]
+    [Tags("Типы ")]
     public class TypesController : ControllerBase
     {
         private readonly ITypeService _service;

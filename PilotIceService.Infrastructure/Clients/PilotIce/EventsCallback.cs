@@ -11,26 +11,30 @@ namespace PilotIceService.Infrastructure.Clients.PilotIce
     class EventsCallback : IEventsCallback
     {
         private readonly List<DRule> _rules;
-        private readonly Func<Guid, Guid, Task> _acceptAction;
-        private readonly Func<IEnumerable<DChangesetData>, DRule, Task> _printChangeDetails;
+        private readonly Func<Guid, Guid, Task>? _acceptAction;
+        private readonly Func<IEnumerable<DChangesetData>, DRule, Task>? _processingChangeDetails;
 
-        public EventsCallback(List<DRule> rules, Func<Guid, Guid, Task> acceptAction,
-            Func<IEnumerable<DChangesetData>, DRule, Task> printChangeDetails)
+        public EventsCallback(List<DRule> rules, Func<Guid, Guid, Task>? acceptAction,
+            Func<IEnumerable<DChangesetData>, DRule, Task>? processingChangeDetails)
         {
             _rules = rules;
             _acceptAction = acceptAction;
-            _printChangeDetails = printChangeDetails;
+            _processingChangeDetails = processingChangeDetails;
         }
 
         public async void NotifyChange(Guid ruleId, DChangesetData change)
         {
             var rule = _rules.FirstOrDefault(x => x.Id == ruleId);
-            if (rule != null)
+            if (rule != null && _processingChangeDetails != null)
             {
-                await _printChangeDetails(new List<DChangesetData>() { change }, rule);
+                await _processingChangeDetails(new List<DChangesetData>() { change }, rule);
             }
 
-            await _acceptAction(change.Identity, ruleId);
+            if (_acceptAction != null)
+            {
+                await _acceptAction(change.Identity, ruleId);
+            }
+
         }
 
     }
